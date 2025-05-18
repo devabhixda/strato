@@ -1,0 +1,47 @@
+[
+    {
+        "humanUser": "Foo Bar1",
+        "createDate": "Oct 1 2020",
+        "passwordChangedDate": "Oct 1 2021",
+        "daysSinceLastPasswordChange": 1325,
+        "lastAccessDate": "Jan 4 2025",
+        "daysSinceLastAccess": 134,
+        "mfaEnabled": "Yes"
+    },
+    {
+        "humanUser": "Foo1 Bar1",
+        "createDate": "Sep 20 2019",
+        "passwordChangedDate": "Sep 22 2019",
+        "daysSinceLastPasswordChange": 2064,
+        "lastAccessDate": "Feb 8 2025",
+        "daysSinceLastAccess": 99,
+        "mfaEnabled": "No"
+    },
+    {
+        "humanUser": "Foo2 Bar2",
+        "createDate": "Feb 3 2022",
+        "passwordChangedDate": "Feb 3 2022",
+        "daysSinceLastPasswordChange": 1200,
+        "lastAccessDate": "Feb 12 2025",
+        "daysSinceLastAccess": 95,
+        "mfaEnabled": "No"
+    },
+    {
+        "humanUser": "Foo3 Bar3",
+        "createDate": "Mar 7 2023",
+        "passwordChangedDate": "Mar 10 2023",
+        "daysSinceLastPasswordChange": 801,
+        "lastAccessDate": "Jan 3 2022",
+        "daysSinceLastAccess": 1232,
+        "mfaEnabled": "Yes"
+    },
+    {
+        "humanUser": "Foo Bar4",
+        "createDate": "Apr 8 2018",
+        "passwordChangedDate": "Apr 12 2020",
+        "daysSinceLastPasswordChange": 1862,
+        "lastAccessDate": "Oct 4 2022",
+        "daysSinceLastAccess": 956,
+        "mfaEnabled": "No"
+    }
+]
