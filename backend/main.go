@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 // User struct to hold user data
@@ -32,8 +33,44 @@ func loadUsers() {
 }
 
 func usersHandler(w http.ResponseWriter, r *http.Request) {
+	responseUsers := make([]User, len(users))
+	copy(responseUsers, users) // Work on a copy to ensure calculations are fresh per request
+
+	now := time.Now().UTC()
+	dateFormat := "Jan 2 2006"
+	for i := range responseUsers {
+		currentUser := &responseUsers[i]
+		// Calculate DaysSinceLastPasswordChange
+		if currentUser.PasswordChangedDate != "" {
+			pwdChangedDate, err := time.Parse(dateFormat, currentUser.PasswordChangedDate)
+			if err != nil {
+				log.Printf("Error parsing PasswordChangedDate ('%s') for user %s: %v", currentUser.PasswordChangedDate, currentUser.HumanUser, err)
+				currentUser.DaysSinceLastPasswordChange = -1 // Indicate error
+			} else {
+				duration := now.Sub(pwdChangedDate)
+				currentUser.DaysSinceLastPasswordChange = int(duration.Hours() / 24)
+			}
+		} else {
+			currentUser.DaysSinceLastPasswordChange = -1 // Indicate missing date
+		}
+
+		// Calculate DaysSinceLastAccess
+		if currentUser.LastAccessDate != "" {
+			lastAccess, err := time.Parse(dateFormat, currentUser.LastAccessDate)
+			if err != nil {
+				log.Printf("Error parsing LastAccessDate ('%s') for user %s: %v", currentUser.LastAccessDate, currentUser.HumanUser, err)
+				currentUser.DaysSinceLastAccess = -1 // Indicate error
+			} else {
+				duration := now.Sub(lastAccess)
+				currentUser.DaysSinceLastAccess = int(duration.Hours() / 24)
+			}
+		} else {
+			currentUser.DaysSinceLastAccess = -1 // Indicate missing date
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(users)
+	json.NewEncoder(w).Encode(responseUsers)
 }
 
 func main() {
