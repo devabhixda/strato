@@ -33,6 +33,21 @@ const formatDateForInput = (date) => {
     return `${year}-${month}-${day}`;
 };
 
+// Function to determine row highlighting
+const getRowHighlightClass = (user) => {
+  let classes = '';
+  const daysSincePwdChange = Number(user.daysSinceLastPasswordChange);
+  const daysSinceLastLogon = Number(user.daysSinceLastAccess);
+
+  if (daysSinceLastLogon > 365) {
+    classes += ' bg-yellow-100 hover:bg-yellow-200';
+  }
+  if (daysSincePwdChange > 90) {
+    classes = ' bg-red-100 hover:bg-red-200';
+  }
+  return classes;
+};
+
 function UserTable() {
   const [users, setUsers] = useState([]);
   const [error, setError] = useState(null);
@@ -379,8 +394,10 @@ function UserTable() {
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredAndSortedUsers.length > 0 ? (
               filteredAndSortedUsers.map((user, index) => (
-                // Using a more robust key if available, e.g., user.id. For now, humanUser + index
-                <tr key={(user.humanUser || `user-${index}`) + index} className="hover:bg-gray-50 transition-colors duration-150">
+                <tr 
+                  key={(user.humanUser || `user-${index}`) + index} 
+                  className={`transition-colors duration-150 ${getRowHighlightClass(user) || 'hover:bg-gray-50'}`}
+                >
                   {columnsConfig.map(column => (
                     <td key={column.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       {user[column.key]}
@@ -398,12 +415,7 @@ function UserTable() {
           </tbody>
         </table>
       </div>
-      {users.length > 0 && filteredAndSortedUsers.length === 0 && !loading && (
-        <p className="text-center text-gray-600 mt-6">
-          No results for the current filters. Try adjusting your search or filter settings.
-        </p>
-      )}
-       <p className="text-sm text-gray-500 mt-4 text-center">
+      <p className="text-sm text-gray-500 mt-4 text-center">
         Displaying {filteredAndSortedUsers.length} of {users.length} users.
       </p>
 
