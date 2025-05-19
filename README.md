@@ -2,6 +2,8 @@
 
 Strato is a full-stack user management application with a Go backend and React frontend, containerized using Docker. The application provides a comprehensive dashboard for monitoring user accounts, focusing on security metrics like password age and last access dates.
 
+![Strato User Dashboard](./screenshots/dashboard.png)
+
 ## Features
 
 - **User Management Dashboard**
@@ -9,6 +11,8 @@ Strato is a full-stack user management application with a Go backend and React f
   - Add new users to the system
   - Monitor security metrics in real-time
   - Visual indicators for security concerns (color-coded rows)
+
+![Add New User Modal](./screenshots/add-user-modal.png)
 
 - **Security Monitoring**
   - Track days since last password change
