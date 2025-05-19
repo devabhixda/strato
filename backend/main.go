@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	_ "github.com/lib/pq" // PostgreSQL driver
@@ -13,12 +14,21 @@ import (
 // User struct to hold user data
 type User struct {
 	HumanUser                   string `json:"humanUser"`
-	CreateDate                  string `json:"createDate"`
-	PasswordChangedDate         string `json:"passwordChangedDate"`
-	DaysSinceLastPasswordChange int    `json:"daysSinceLastPasswordChange"`
-	LastAccessDate              string `json:"lastAccessDate"`
-	DaysSinceLastAccess         int    `json:"daysSinceLastAccess"`
-	MFAEnabled                  string `json:"mfaEnabled"` // Remains string for "Yes"/"No" output
+	CreateDate                  string `json:"createDate,omitempty"`
+	PasswordChangedDate         string `json:"passwordChangedDate,omitempty"`
+	DaysSinceLastPasswordChange int    `json:"daysSinceLastPasswordChange,omitempty"`
+	LastAccessDate              string `json:"lastAccessDate,omitempty"`
+	DaysSinceLastAccess         int    `json:"daysSinceLastAccess,omitempty"`
+	MFAEnabled                  string `json:"mfaEnabled"`
+}
+
+// InputUser struct for POST request, omits calculated fields
+type InputUser struct {
+	HumanUser           string `json:"humanUser"`
+	CreateDate          string `json:"createDate"`
+	PasswordChangedDate string `json:"passwordChangedDate"`
+	LastAccessDate      string `json:"lastAccessDate"`
+	MFAEnabled          string `json:"mfaEnabled"`
 }
 
 var users []User
@@ -96,6 +106,16 @@ func usersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Method == http.MethodGet {
+		getUsers(w, r)
+	} else if r.Method == http.MethodPost {
+		addUser(w, r)
+	} else {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func getUsers(w http.ResponseWriter, r *http.Request) {
 	responseUsers := make([]User, len(users))
 	copy(responseUsers, users) // Work on a copy to ensure calculations are fresh per request
 
@@ -134,6 +154,52 @@ func usersHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(responseUsers)
+}
+
+func addUser(w http.ResponseWriter, r *http.Request) {
+	var newUser InputUser
+	err := json.NewDecoder(r.Body).Decode(&newUser)
+	if err != nil {
+		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if newUser.HumanUser == "" {
+		http.Error(w, "HumanUser cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	var mfaEnabledDB bool
+	switch strings.ToLower(newUser.MFAEnabled) {
+	case "yes":
+		mfaEnabledDB = true
+	case "no":
+		mfaEnabledDB = false
+	default:
+		http.Error(w, "MFAEnabled must be 'Yes' or 'No'", http.StatusBadRequest)
+		return
+	}
+
+	stmt, err := db.Prepare("INSERT INTO users_table (human_user, create_date, password_changed_date, last_access_date, mfa_enabled) VALUES ($1, $2, $3, $4, $5)")
+	if err != nil {
+		log.Printf("Error preparing statement for add user: %v", err)
+		http.Error(w, "Failed to add user", http.StatusInternalServerError)
+		return
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(newUser.HumanUser, newUser.CreateDate, newUser.PasswordChangedDate, newUser.LastAccessDate, mfaEnabledDB)
+	if err != nil {
+		log.Printf("Error executing statement for add user: %v", err)
+		http.Error(w, "Failed to add user to database", http.StatusInternalServerError)
+		return
+	}
+
+	loadUsers()
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{"message": "User added successfully"})
+	log.Printf("User %s added successfully", newUser.HumanUser)
 }
 
 func main() {
