@@ -49,17 +49,27 @@ func loadUsers() {
 		log.Fatal("DB_CONN_STR environment variable not set")
 	}
 	var err error
-	db, err = sql.Open("postgres", connStr)
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+
+	// Only open a new connection if db is nil (i.e., not already set by a mock or previous call)
+	if db == nil {
+		log.Println("Global db is nil. Attempting to open and ping new database connection.") // Diagnostic log
+		db, err = sql.Open("postgres", connStr)
+		if err != nil {
+			log.Fatalf("Failed to connect to database: %v", err)
+		}
+
+		err = db.Ping() // Ping the newly opened connection
+		if err != nil {
+			// This is where your test is currently failing because it's a real ping
+			log.Fatalf("Failed to ping database: %v", err)
+		}
+		log.Println("Database connection established and pinged successfully.")
+	} else {
+		log.Println("Global db is already set. Using existing connection (mock in tests).") // Diagnostic log
 	}
 
-	err = db.Ping()
-	if err != nil {
-		log.Fatalf("Failed to ping database: %v", err)
-	}
-
-	rows, err := db.Query("SELECT human_user, create_date, password_changed_date, last_access_date, mfa_enabled FROM users_table") // Adjust table and column names
+	// The rest of the function uses the 'db' instance (either real or mock)
+	rows, err := db.Query("SELECT human_user, create_date, password_changed_date, last_access_date, mfa_enabled FROM users_table")
 	if err != nil {
 		log.Fatalf("Failed to query users from database: %v", err)
 	}
