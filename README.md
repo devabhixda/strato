@@ -27,6 +27,12 @@ Strato is a full-stack user management application with a Go backend and React f
   - Filter by date ranges (create date, password change, last access)
   - Filter by MFA status (enabled/disabled)
 
+## Application Demo
+
+Watch a short demonstration of Dashboards's key features:
+
+<video src="./screenshots/Strato-Demo.mp4" controls width="100%"></video>
+
 ## Technology Stack
 
 - **Backend**
