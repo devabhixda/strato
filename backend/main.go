@@ -43,7 +43,7 @@ func loadEnv() {
 	}
 }
 
-func loadUsers() {
+func connectDB() {
 	connStr := os.Getenv("DB_CONN_STR")
 	if connStr == "" {
 		log.Fatal("DB_CONN_STR environment variable not set")
@@ -67,6 +67,53 @@ func loadUsers() {
 	} else {
 		log.Println("Global db is already set. Using existing connection (mock in tests).") // Diagnostic log
 	}
+}
+
+func initializeDB() {
+	log.Println("Initializing database...")
+
+	// Check if table exists first
+	var exists bool
+	err := db.QueryRow("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users_table')").Scan(&exists)
+	if err != nil {
+		log.Fatalf("Failed to check if users_table exists: %v", err)
+	}
+
+	if !exists {
+		log.Println("Creating users_table...")
+		_, err = db.Exec(`
+            CREATE TABLE users_table (
+                human_user VARCHAR(255) PRIMARY KEY,
+                create_date VARCHAR(255),
+                password_changed_date VARCHAR(255),
+                last_access_date VARCHAR(255),
+                mfa_enabled BOOLEAN
+            )
+        `)
+		if err != nil {
+			log.Fatalf("Failed to create users_table: %v", err)
+		}
+
+		// Seed initial data
+		log.Println("Seeding initial user data...")
+		_, err = db.Exec(`
+            INSERT INTO users_table (human_user, create_date, password_changed_date, last_access_date, mfa_enabled) VALUES
+            ('Foo Bar1', 'Oct 1 2020', 'Oct 1 2021', 'Jan 4 2025', 'true'),
+			('Foo1 Bar1', 'Sep 20 2019', 'Sep 22 2019', 'Feb 8 2025', 'false'),
+			('Foo2 Bar2', 'Feb 3 2022', 'Feb 3 2022', 'Feb 12 2025', 'false'),
+			('Foo3 Bar3', 'Mar 7 2023', 'Mar 10 2023', 'Jan 3 2022', 'true'),
+			('Foo Bar4', 'Apr 8 2018', 'Apr 12 2020', 'Oct 4 2022', 'false')
+        `)
+		if err != nil {
+			log.Fatalf("Failed to seed initial data: %v", err)
+		}
+		log.Println("Database initialization complete.")
+	} else {
+		log.Println("users_table already exists, skipping initialization.")
+	}
+}
+
+func loadUsers() {
 
 	// The rest of the function uses the 'db' instance (either real or mock)
 	rows, err := db.Query("SELECT human_user, create_date, password_changed_date, last_access_date, mfa_enabled FROM users_table")
@@ -226,6 +273,8 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	loadEnv()
+	connectDB()
+	initializeDB()
 	loadUsers()
 
 	http.HandleFunc("/api/users", usersHandler)
