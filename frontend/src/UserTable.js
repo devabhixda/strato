@@ -39,10 +39,10 @@ const getRowHighlightClass = (user) => {
   const daysSincePwdChange = Number(user.daysSinceLastPasswordChange);
   const daysSinceLastLogon = Number(user.daysSinceLastAccess);
 
-  if (daysSinceLastLogon > 365) {
+  if (daysSincePwdChange > 365) {
     classes += ' bg-yellow-100 hover:bg-yellow-200';
   }
-  if (daysSincePwdChange > 90) {
+  if (daysSinceLastLogon > 90) {
     classes = ' bg-red-100 hover:bg-red-200';
   }
   return classes;
