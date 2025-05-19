@@ -38,6 +38,32 @@ Strato is a full-stack user management application with a Go backend and React f
   - Solar Icons component library
   - Responsive design
 
+## Design & Architecture
+
+### Performance Optimizations
+
+- **Database Interaction Strategy**: Data is loaded from the database only when the server starts or when a new user is added, not on every request. This in-memory caching approach significantly reduces database load and improves response times.
+
+- **Stateless API Design**: The backend implements a stateless API design pattern, allowing for horizontal scaling without session synchronization concerns.
+
+### Frontend Architecture
+
+- **Tailwind CSS**: Used for rapid UI development with utility-first classes, eliminating the need for custom CSS in most cases and ensuring design consistency.
+
+- **Component-Based Design**: UI is built with reusable components to maximize code reuse and maintainability.
+
+### Containerization
+
+- **Multi-Stage Builds**: The backend Dockerfile uses multi-stage builds to create a minimal production image without build tools and intermediate artifacts.
+
+- **Service Dependency Management**: Docker Compose health checks ensure services start in the correct order, preventing connection failures during startup.
+
+### Tradeoffs
+
+- **In-Memory Data Storage**: While providing performance benefits, the current caching approach means changes made directly to the database won't be reflected without a server restart.
+
+- **Monolithic API**: The current design favors simplicity with a monolithic API structure rather than microservices, trading some scalability for development speed and operational simplicity.
+
 ## Project Structure
 
 ```
