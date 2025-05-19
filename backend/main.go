@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq" // PostgreSQL driver
 )
 
@@ -34,8 +36,18 @@ type InputUser struct {
 var users []User
 var db *sql.DB // Global database connection
 
+func loadEnv() {
+	err := godotenv.Load() // Load .env file from the current directory
+	if err != nil {
+		log.Println("No .env file found, using default or environment-set variables")
+	}
+}
+
 func loadUsers() {
-	connStr := "" // Example: connStr := "user=postgres password=mysecretpassword dbname=mydb sslmode=disable"
+	connStr := os.Getenv("DB_CONN_STR")
+	if connStr == "" {
+		log.Fatal("DB_CONN_STR environment variable not set")
+	}
 	var err error
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
@@ -203,6 +215,7 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	loadEnv()
 	loadUsers()
 
 	http.HandleFunc("/api/users", usersHandler)
