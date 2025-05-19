@@ -1,11 +1,13 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
-	"os"
 	"time"
+
+	_ "github.com/lib/pq" // PostgreSQL driver
 )
 
 // User struct to hold user data
@@ -16,20 +18,71 @@ type User struct {
 	DaysSinceLastPasswordChange int    `json:"daysSinceLastPasswordChange"`
 	LastAccessDate              string `json:"lastAccessDate"`
 	DaysSinceLastAccess         int    `json:"daysSinceLastAccess"`
-	MFAEnabled                  string `json:"mfaEnabled"`
+	MFAEnabled                  string `json:"mfaEnabled"` // Remains string for "Yes"/"No" output
 }
 
 var users []User
+var db *sql.DB // Global database connection
 
 func loadUsers() {
-	data, err := os.ReadFile("users.json")
+	connStr := "" // Example: connStr := "user=postgres password=mysecretpassword dbname=mydb sslmode=disable"
+	var err error
+	db, err = sql.Open("postgres", connStr)
 	if err != nil {
-		log.Fatalf("Failed to read users.json: %v", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	err = json.Unmarshal(data, &users)
+
+	err = db.Ping()
 	if err != nil {
-		log.Fatalf("Failed to unmarshal users data: %v", err)
+		log.Fatalf("Failed to ping database: %v", err)
 	}
+
+	rows, err := db.Query("SELECT human_user, create_date, password_changed_date, last_access_date, mfa_enabled FROM users_table") // Adjust table and column names
+	if err != nil {
+		log.Fatalf("Failed to query users from database: %v", err)
+	}
+	defer rows.Close()
+
+	var loadedUsers []User
+	for rows.Next() {
+		var u User
+		var createDate, passwordChangedDate, lastAccessDate sql.NullString
+		var mfaEnabledDB sql.NullBool // Use sql.NullBool for boolean from DB
+
+		err := rows.Scan(&u.HumanUser, &createDate, &passwordChangedDate, &lastAccessDate, &mfaEnabledDB)
+		if err != nil {
+			log.Printf("Failed to scan user row: %v", err)
+			continue // Skip this user
+		}
+		// Handle nullable date strings
+		if createDate.Valid {
+			u.CreateDate = createDate.String
+		}
+		if passwordChangedDate.Valid {
+			u.PasswordChangedDate = passwordChangedDate.String
+		}
+		if lastAccessDate.Valid {
+			u.LastAccessDate = lastAccessDate.String
+		}
+
+		// Convert boolean mfaEnabledDB to "Yes"/"No" string
+		if mfaEnabledDB.Valid {
+			if mfaEnabledDB.Bool {
+				u.MFAEnabled = "Yes"
+			} else {
+				u.MFAEnabled = "No"
+			}
+		} else {
+			u.MFAEnabled = "No" // Default for NULL MFA status, or "Unknown"
+		}
+
+		loadedUsers = append(loadedUsers, u)
+	}
+	if err = rows.Err(); err != nil {
+		log.Fatalf("Error iterating user rows: %v", err)
+	}
+	users = loadedUsers
+	log.Printf("Successfully loaded %d users from database", len(users))
 }
 
 func usersHandler(w http.ResponseWriter, r *http.Request) {
